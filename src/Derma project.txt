@@ -1,0 +1,149 @@
+﻿Dermatological Diagnostic Tool
+ By: Muhammad Raffay Aziz        
+
+
+INTRODUCTION:
+                          
+My project is Dermatological Disease Diagnostic Tool. The Objective was to create a Deep Learning model that is capable of automatically identifying different dermatological conditions from skin lesion images, helping doctors and patients with faster and more accessible diagnoses.
+
+
+DATASET:
+
+
+I used Data from five different places which are as follows:
+* 2300 Custom images (Collected myself from dermatologists).
+* DermNet 
+* DDI (Research by Stanford students)
+* PAD-UFES-20 (real phone images)
+* Diverse Dermatology Images Kaggle
+
+
+DATA LABELING & ANNOTATIONS:
+
+
+I used an ImageFolder-based structure, where each disease type is a folder name.
+Example:
+final_dataset/
+  ├── eczema/
+  ├── melanoma/
+  ├── psoriasis/
+
+
+Each folder name acts as the label.
+Thus, the dataset is automatically labeled by folder structure. This is called Classification Labeling.
+
+
+In this project, we used classification annotations, meaning one image corresponds to one disease label.
+
+
+DATA AUGMENTATION:
+
+Data augmentation increases dataset diversity and helps prevent overfitting. It helps the Model to generalize better.
+
+
+Techniques Used:
+train_transforms = transforms.Compose([
+   transforms.Resize((300, 300)),
+   transforms.RandomHorizontalFlip(p=0.5),
+   transforms.ColorJitter(brightness=0.1, contrast=0.1, saturation=0.05),
+   transforms.RandomRotation(10),
+   transforms.ToTensor(),
+   transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                        std=[0.229, 0.224, 0.225])
+])
+
+
+Explanation:
+* RandomHorizontalFlip: simulates mirror images
+* ColorJitter: changes brightness & contrast
+* RandomRotation: rotates slightly to improve robustness
+* Normalization: standardizes pixel values
+* All transformations were done using Torchvision’s transforms module.
+
+
+MODEL SELECTION & ARCHITECTURE:
+I chose EfficientNet-B3 for this Model from torchvision.models. The reason for choosing this was the excellent trade-off between accuracy and efficiency. It's trained on ImageNet so it already knows general image features very well. It is great on medical data.
+model = models.efficientnet_b3(weights=models.EfficientNet_B3_Weights.IMAGENET1K_V1)
+
+
+Architecture Adjustment:
+in_features = model.classifier[1].in_features
+model.classifier[1] = nn.Linear(in_features, num_classes)
+
+
+Replaced the classifier head to match the number of skin disease classes.Used transfer learning for faster and more accurate convergence.
+TRAINING STRATEGY:
+1. Gradual Unfreezing
+
+   * Initially froze all pretrained layers to train only the classifier.
+   * After 5 epochs: unfreezed deeper feature layers.
+   * After 10 epochs: fully unfreezed all layers for fine-tuning.
+   2. This helps stabilize learning and avoid overfitting early on.
+   3. Optimizer: AdamW
+   4. Loss Function: CrossEntropyLoss
+   5. Scheduler: CosineAnnealingLR for dynamic learning rate adjustment.
+   6. Metric: F1 Score using torchmetrics for balanced evaluation.
+criterion = nn.CrossEntropyLoss()
+optimizer = optim.AdamW(model.parameters(), lr=1e-4, weight_decay=1e-4)
+scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=10)
+f1_metric = MulticlassF1Score(num_classes=num_classes).to(device)
+
+
+DATA SPLIT & VALIDATION:
+   * Training–Validation Split: 85% – 15%
+   * Batch Size: 32
+   * Validation Transform: Only resizing and normalization (no augmentation).
+   * Ensures fair evaluation of the model.
+TRAINING AND FINE TUNING:
+Epochs: 20
+Gradual Unfreezing Milestones:
+   * Epoch 0–4: Classifier only
+   * Epoch 5: Last few layers unfrozen
+   * Epoch 10+: Entire model unfrozen
+
+
+Save Strategy:
+   * Best model automatically detected based on validation accuracy:
+# Freeze all layers initially
+for param in model.parameters():
+   param.requires_grad = False
+
+
+# Unfreeze only classifier head first
+for param in model.classifier.parameters():
+   param.requires_grad = True
+
+
+model = model.to(device)
+# Gradual unfreezing
+if epoch == 5:
+   print("🧠 Unfreezing last few layers for fine-tuning...")
+   for name, param in model.named_parameters():
+       if "features.6" in name or "features.7" in name:
+           param.requires_grad = True
+
+
+if epoch == 10:
+   print("🔓 Unfreezing all layers for full fine-tuning...")
+   for param in model.parameters():
+       param.requires_grad = True
+
+
+RESULTS:
+
+
+METRIC
+	TRAINING
+	VALIDATION
+	Accuracy
+	~95%
+	0.895
+	F1 Score
+	~90%
+	0.815
+	
+
+Observations:
+   * Gradual unfreezing and augmentation significantly reduced overfitting.
+   * EfficientNet-B3 achieved high accuracy while maintaining stability.
+   * Best model saved for deployment.
