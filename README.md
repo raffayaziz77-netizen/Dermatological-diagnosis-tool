@@ -45,7 +45,7 @@ Dermatological-Diagnosis-Tool/
 
 1\. \*\*Clone the repository\*\*  
    \`\`\`bash  
-   git clone https://github.com/\<your-username\>/Dermatological-Diagnosis-Tool.git  
+   git clone https://github.com/raffayaziz77-netizen/Dermatological-diagnosis-tool  
    cd Dermatological-Diagnosis-Tool  
 Install dependencies
 
