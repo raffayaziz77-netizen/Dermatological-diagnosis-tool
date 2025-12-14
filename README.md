@@ -57,7 +57,7 @@ python src/derma\_test.py
 
 **Model Information**
 
-Model Type: ResNet (CNN-based)  
+Model Type: Efficentnet-B3  
 Framework: PyTorch  
 Dataset: Public dermatology dataset  
 Input: Skin lesion image  
